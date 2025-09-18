@@ -1,20 +1,28 @@
-// Import the Express library, which helps us build the server
 import express from 'express';
+import Database from 'better-sqlite3';
 
-// Initialize the Express application
 const app = express();
-// Define the port number our server will run on
 const port = 3000;
 
-// This is a "route". It tells the server what to do when someone
-// visits the main URL of our API (we call it the "root" or '/')
+// Connect to the database
+const db = new Database('data/atlas.db');
+
+// The root route still works
 app.get('/', (req, res) => {
-  // We're sending back a simple JSON object as the response
   res.json({ message: "Welcome to the Atlas API! It is alive." });
 });
 
-// This command starts the server and makes it listen for incoming requests
-// on the port we defined. The message inside will print to your terminal.
+// NEW: An endpoint to get all atoms from the database
+app.get('/atoms', (req, res) => {
+    try {
+        const stmt = db.prepare('SELECT * FROM atoms');
+        const atoms = stmt.all();
+        res.json(atoms);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve atoms' });
+    }
+});
+
 app.listen(port, () => {
   console.log(`Atlas server is running at http://localhost:${port}`);
 });
