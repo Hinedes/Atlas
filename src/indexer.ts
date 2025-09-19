@@ -1,12 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import url from 'url';
-import Database from 'better-sqlite3';
+import db from './db.js';
 
 // The modern way to get the directory path
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const vaultPath = path.join(__dirname, '..', 'vault');
-const db = new Database('./data/atlas.db');
 
 // ... The rest of the runIndexer() function remains the same ...
 function runIndexer() {

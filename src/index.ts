@@ -1,11 +1,8 @@
 import express from 'express';
-import Database from 'better-sqlite3';
+import db from './db.js';
 
 const app = express();
 const port = 3000;
-
-// Connect to the database
-const db = new Database('data/atlas.db');
 
 // The root route still works
 app.get('/', (req, res) => {
