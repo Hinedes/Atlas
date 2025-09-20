@@ -1,41 +1,42 @@
 import fs from 'fs';
 import path from 'path';
 import url from 'url';
-import Database from 'better-sqlite3';
+import db from './db.js';
 
 // The modern way to get the directory path
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const vaultPath = path.join(__dirname, '..', 'vault');
-const db = new Database('./data/atlas.db');
 
 // ... The rest of the runIndexer() function remains the same ...
 function runIndexer() {
-    console.log('Starting indexer...');
-    db.prepare('DELETE FROM atoms').run();
-    console.log('Cleared existing atoms from database.');
+  console.log('Starting indexer...');
+  db.prepare('DELETE FROM atoms').run();
+  console.log('Cleared existing atoms from database.');
 
-    const files = fs.readdirSync(vaultPath);
-    for (const file of files) {
-        if (path.extname(file) === '.md') {
-            console.log(`Processing file: ${file}`);
-            const content = fs.readFileSync(path.join(vaultPath, file), 'utf-8');
-            const sections = content.split('## ');
+  const files = fs.readdirSync(vaultPath);
+  for (const file of files) {
+    if (path.extname(file) === '.md') {
+      console.log(`Processing file: ${file}`);
+      const content = fs.readFileSync(path.join(vaultPath, file), 'utf-8');
+      const sections = content.split('## ');
 
-            for (let i = 1; i < sections.length; i++) {
-                const section = sections[i];
-                if (!section) continue;
+      for (let i = 1; i < sections.length; i++) {
+        const section = sections[i];
+        if (!section) continue;
 
-                const lines = section.split('\n');
-                const title = lines[0]?.trim();
-                if (!title) continue;
+        const lines = section.split('\n');
+        const title = lines[0]?.trim();
+        if (!title) continue;
 
-                const body = lines.slice(1).join('\n').trim();
-                const insertStmt = db.prepare('INSERT INTO atoms (title, body) VALUES (?, ?)');
-                insertStmt.run(title, body);
-                console.log(`  -> Indexed Atom: "${title}"`);
-            }
-        }
+        const body = lines.slice(1).join('\n').trim();
+        const insertStmt = db.prepare(
+          'INSERT INTO atoms (title, body) VALUES (?, ?)'
+        );
+        insertStmt.run(title, body);
+        console.log(`  -> Indexed Atom: "${title}"`);
+      }
     }
-    console.log('Indexer finished successfully.');
+  }
+  console.log('Indexer finished successfully.');
 }
 runIndexer();
