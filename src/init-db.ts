@@ -1,8 +1,7 @@
-import Database from 'better-sqlite3';
+import db from './db.js';
 
 // This connects to a database file in a 'data' folder.
 // The file will be created if it doesn't exist.
-const db = new Database('data/atlas.db', { verbose: console.log });
 
 function initialize() {
   // This command creates the 'atoms' table if it doesn't already exist.
