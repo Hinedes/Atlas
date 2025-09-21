@@ -6,6 +6,9 @@ import { EmbeddingPipeline } from './embedding.js';
 
 const vaultPath = path.join(process.cwd(), 'vault');
 
+// This function is the single source of truth for populating the database.
+// It completely wipes the database and re-indexes all documents from the vault.
+// This is a simple and effective strategy for ensuring the index is always in sync.
 export async function runIndexer() {
   try {
     console.log('Starting indexer...');
@@ -14,6 +17,7 @@ export async function runIndexer() {
     db.prepare('DELETE FROM vss_atoms').run();
     console.log('Cleared existing atoms from database.');
 
+    const documents = [];
     const files = fs.readdirSync(vaultPath);
     for (const file of files) {
       if (path.extname(file) === '.md') {
@@ -41,22 +45,40 @@ export async function runIndexer() {
           if (!title) continue;
 
           const body = lines.slice(bodyStartIndex).join('\n').trim();
-          const info = db.prepare(
-            'INSERT INTO atoms (title, body) VALUES (?, ?)'
-          ).run(title, body);
-
-          if (!process.env.JEST_WORKER_ID) {
-            const embedding = await extractor(title + '\n' + body, { pooling: 'mean', normalize: true });
-
-            db.prepare(
-              'INSERT INTO vss_atoms (rowid, embedding) VALUES (?, ?)'
-            ).run(info.lastInsertRowid, JSON.stringify(Array.from(embedding.data)));
-          }
-
-          console.log(`  -> Indexed Atom: "${title}"`);
+          documents.push({ title, body });
         }
       }
     }
+
+    console.log(`Found ${documents.length} documents to index.`);
+
+    if (documents.length > 0) {
+      const texts = documents.map(doc => doc.title + '\n' + doc.body);
+      const embeddings = await extractor(texts, { pooling: 'mean', normalize: true });
+
+      for (let i = 0; i < documents.length; i++) {
+        try {
+          const doc = documents[i];
+          const embedding = embeddings[i].data;
+
+          const info = db.prepare(
+            'INSERT INTO atoms (title, body) VALUES (?, ?)'
+          ).run(doc.title, doc.body);
+
+          if (!process.env.JEST_WORKER_ID) {
+            db.prepare(
+              'INSERT INTO vss_atoms (rowid, embedding) VALUES (?, ?)'
+            ).run(info.lastInsertRowid, JSON.stringify(Array.from(embedding)));
+          }
+
+          console.log(`  -> Indexed Atom: "${doc.title}"`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`  -> Failed to index atom: "${documents[i].title}". Error: ${message}`);
+        }
+      }
+    }
+
     console.log('Indexer finished successfully.');
   } catch (error) {
     // It's better to cast the error to the Error type to access the message

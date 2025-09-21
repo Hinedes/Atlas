@@ -1,6 +1,9 @@
 import express from 'express';
 import db from './db.js';
 import { EmbeddingPipeline } from './embedding.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const port = 3000;

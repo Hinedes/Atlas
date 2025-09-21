@@ -6,7 +6,11 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@xenova/transformers": ["types/xenova-transformers.d.ts"]
+    }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

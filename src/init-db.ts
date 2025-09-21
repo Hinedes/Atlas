@@ -3,7 +3,12 @@ import db from './db.js';
 // This connects to a database file in a 'data' folder.
 // The file will be created if it doesn't exist.
 
-export function initialize() {
+export function initialize(reset = false) {
+  if (reset) {
+    db.prepare('DROP TABLE IF EXISTS atoms').run();
+    db.prepare('DROP TABLE IF EXISTS vss_atoms').run();
+    console.log('Database reset.');
+  }
   // Create the 'atoms' table for storing the raw text content
   db.prepare(`
     CREATE TABLE IF NOT EXISTS atoms (
@@ -26,5 +31,6 @@ export function initialize() {
   console.log('Database initialized successfully.');
 }
 
-// To run this file directly, use a command like:
-// node -e 'import("./dist/init-db.js").then(db => db.initialize())'
+if (process.argv.includes('--reset')) {
+  initialize(true);
+}

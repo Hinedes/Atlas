@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import db from '../src/db';
-import { runIndexer } from '../src/indexer';
+import db from '../src/db.js';
+import { runIndexer } from '../src/indexer.js';
 import assert from 'assert';
+import { Atom } from '../src/types.js';
 
 const vaultPath = path.join(__dirname, '..', 'vault');
 
@@ -33,7 +34,7 @@ This is the body of the test note.
 
     // Check the database
     const stmt = db.prepare('SELECT * FROM atoms WHERE title = ?');
-    const atom = stmt.get('My Test Title');
+    const atom = stmt.get('My Test Title') as Atom;
 
     // Assert that the atom was created
     assert.notStrictEqual(atom, undefined, 'The atom should have been created, but it was not.');
