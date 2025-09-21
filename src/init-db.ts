@@ -3,26 +3,34 @@ import db from './db.js';
 // This connects to a database file in a 'data' folder.
 // The file will be created if it doesn't exist.
 
-function initialize() {
-  // This command creates the 'atoms' table if it doesn't already exist.
-  const createTableStmt = db.prepare(`
-        CREATE TABLE IF NOT EXISTS atoms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            body TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-  createTableStmt.run();
+export function initialize(reset = false) {
+  if (reset) {
+    db.prepare('DROP TABLE IF EXISTS atoms').run();
+    db.prepare('DROP TABLE IF EXISTS vss_atoms').run();
+    console.log('Database reset.');
+  }
+  // Create the 'atoms' table for storing the raw text content
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS atoms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      body TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
 
-  // Let's add some sample data so we have something to see.
-  const insertStmt = db.prepare(`
-        INSERT INTO atoms (title, body) VALUES (?, ?)
-    `);
-  insertStmt.run('First Atom', 'This is the body of the first atom.');
-  insertStmt.run('Second Atom', 'This is another atom in our database!');
+  // Create the virtual table for vector search, but not in the test environment
+  if (!process.env.JEST_WORKER_ID) {
+    db.prepare(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS vss_atoms USING vss0(
+        embedding(384)
+      )
+    `).run();
+  }
 
   console.log('Database initialized successfully.');
 }
 
-initialize();
+if (process.argv.includes('--reset')) {
+  initialize(true);
+}

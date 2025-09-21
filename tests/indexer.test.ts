@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import db from '../src/db';
-import { runIndexer } from '../src/indexer';
+import db from '../src/db.js';
+import { runIndexer } from '../src/indexer.js';
+import { Atom } from '../src/types.js';
 
 const vaultPath = path.join(__dirname, '..', 'vault');
 
@@ -31,7 +32,7 @@ This is the body of the test note.
 
     // Check the database
     const stmt = db.prepare('SELECT * FROM atoms WHERE title = ?');
-    const atom = stmt.get('My Test Title');
+    const atom = stmt.get('My Test Title') as Atom;
 
     // This should fail before the fix
     expect(atom).toBeUndefined();
