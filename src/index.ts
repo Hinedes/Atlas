@@ -1,26 +1,9 @@
 import express from 'express';
 import db from './db.js';
-import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers';
-import { Database } from "sqlite-vss";
-
-// Helper class for the embedding model
-class EmbeddingPipeline {
-    static task = 'feature-extraction';
-    static model = 'Xenova/all-MiniLM-L6-v2';
-    static instance: FeatureExtractionPipeline | null = null;
-
-    static async getInstance() {
-        if (this.instance === null) {
-            this.instance = await pipeline(this.task, this.model) as FeatureExtractionPipeline;
-        }
-        return this.instance;
-    }
-}
+import { EmbeddingPipeline } from './embedding.js';
 
 const app = express();
 const port = 3000;
-const vss = new VssDatabase(db);
-
 // --- NEW: This line serves your index.html page ---
 app.use(express.static('public'));
 
@@ -73,7 +56,16 @@ app.get('/search', async (req, res) => {
         const extractor = await EmbeddingPipeline.getInstance();
         const queryEmbedding = await extractor(query, { pooling: 'mean', normalize: true });
         
-        const results = await vss.search('atoms', 'embedding', queryEmbedding.data, 5);
+        const stmt = db.prepare(`
+            SELECT a.id, a.title, a.body, v.distance
+            FROM vss_atoms v
+            JOIN atoms a ON v.rowid = a.id
+            WHERE vss_search(v.embedding, json(?))
+            ORDER BY v.distance
+            LIMIT 5
+        `);
+
+        const results = stmt.all(JSON.stringify(Array.from(queryEmbedding.data)));
         console.log(`Found ${results.length} results.`);
         res.json(results);
 
