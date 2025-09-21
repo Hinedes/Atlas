@@ -8,7 +8,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const vaultPath = path.join(__dirname, '..', 'vault');
 
 // ... The rest of the runIndexer() function remains the same ...
-function runIndexer() {
+export function runIndexer() {
   try {
     console.log('Starting indexer...');
     db.prepare('DELETE FROM atoms').run();
@@ -26,10 +26,21 @@ function runIndexer() {
           if (!section) continue;
 
           const lines = section.split('\n');
-          const title = lines[0]?.trim();
+          let title = '';
+          let bodyStartIndex = 0;
+
+          for (let j = 0; j < lines.length; j++) {
+            const line = lines[j].trim();
+            if (line) {
+              title = line;
+              bodyStartIndex = j + 1;
+              break;
+            }
+          }
+
           if (!title) continue;
 
-          const body = lines.slice(1).join('\n').trim();
+          const body = lines.slice(bodyStartIndex).join('\n').trim();
           const insertStmt = db.prepare(
             'INSERT INTO atoms (title, body) VALUES (?, ?)'
           );
@@ -47,4 +58,8 @@ function runIndexer() {
     process.exit(1);
   }
 }
-runIndexer();
+
+// If this file is run directly, execute the indexer.
+if (import.meta.url.startsWith('file://') && process.argv[1] === url.fileURLToPath(import.meta.url)) {
+  runIndexer();
+}
